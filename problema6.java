@@ -1,3 +1,4 @@
+
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -15,44 +16,78 @@ public class Main {
         private int contador_mulheres = 0;
         private int homens = 0;
         private int contador_homens = 0;
+        private int contador_espera = 0;
         private boolean booleana = false; // 1 para homens e 0 para mulheres.
 
-        public void Mulheres(String nome, int numero, int tempo) throws InterruptedException {
+        public void Mulheres(String nome, int numero, int tempo, int contador) throws InterruptedException {
             System.out.println(nome + numero + " chegou à fila do banheiro.");
 
+            //
             lock.lock();
             try{
                 mulheres++;
-                if(contador_mulheres == 0 && !booleana){
-                    catraca_homens.acquire();
-                }
-
-                if (!booleana && homens >= 1){
-                    contador_mulheres ++;
-                }
-                if (contador_mulheres == 6){
-                    catraca_mulheres.acquire();
-                }
-            } finally {
+            }finally{
                 lock.unlock();
             }
 
+            //
+            if (contador == 1){
+                catraca_homens.acquire();
+                booleana = false;
+            }else{
+                Thread.sleep(50);
+            }
+
+            //
+            if (!booleana){
+                lock.lock();
+                try{
+                    contador_mulheres++;
+                    if (homens >= 1) {
+                        if (contador_espera == 2) {
+                            catraca_mulheres.acquire();
+                            contador_espera = -1;
+                            booleana = true;
+                        }
+                        contador_espera ++;
+                    }
+                }finally{
+                    lock.unlock();
+                }
+            }
+
+            //
+            lock.lock();
+            try{
+                mulheres++;
+                if (booleana && homens == 0){
+                    booleana = false;
+                }
+            }finally{
+                lock.unlock();
+            }
+
+            //
             catraca_mulheres.acquire();
             catraca_mulheres.release();
 
+            //
             banheiro_mulheres.acquire();
             System.out.println(nome + numero + ": entrou no banheiro...");
             Thread.sleep(tempo);
-            banheiro_mulheres.release();
             System.out.println(nome + numero + ": saiu do banheiro...");
+            banheiro_mulheres.release();
 
+            //
             lock.lock();
             try{
                 mulheres--;
-                if (contador_mulheres == 5){
-                    System.out.println("... É vez dos homens entrarem no banheiro...");
-                    contador_mulheres = 0;
-                    booleana = true;
+                contador_mulheres--;
+                if (booleana || mulheres == 0){
+                    if (mulheres == 0){
+                        contador_espera = 0;
+                    }
+                    System.out.println("... É a vez dos HOMENS usarem o banheiro...");
                     catraca_homens.release();
                 }
             }finally{
@@ -60,41 +95,75 @@ public class Main {
             }
         }
 
-        public void Homens(String nome, int numero, int tempo) throws InterruptedException {
+        public void Homens(String nome, int numero, int tempo, int contador) throws InterruptedException {
             System.out.println(nome + numero + " chegou à fila do banheiro.");
 
+            //
             lock.lock();
             try{
                 homens++;
-                if(contador_homens == 0 && booleana){
-                    catraca_mulheres.acquire();
-                }
-                if (booleana && mulheres >= 1){
-                    contador_homens ++;
-                }
-                if (contador_homens == 6){
-                    catraca_homens.acquire();
-                }
-            } finally {
+            }finally{
                 lock.unlock();
             }
 
+            //
+            if (contador == 1){
+                catraca_mulheres.acquire();
+                booleana = true;
+            }else{
+                Thread.sleep(50);
+            }
+
+            //
+            if (booleana){
+                lock.lock();
+                try{
+                    contador_homens++;
+                    if (mulheres >= 1) {
+                        if (contador_espera == 2) {
+                            catraca_homens.acquire();
+                            contador_espera = -1;
+                            booleana = false;
+                        }
+                        contador_espera ++;
+                    }
+                }finally{
+                    lock.unlock();
+                }
+            }
+
+            //
+            lock.lock();
+            try{
+                homens++;
+                if (!booleana && mulheres == 0){
+                    booleana = true;
+                }
+            }finally{
+                lock.unlock();
+            }
+
+            //
             catraca_homens.acquire();
             catraca_homens.release();
 
+            //
             banheiro_homens.acquire();
             System.out.println(nome + numero + ": entrou no banheiro...");
             Thread.sleep(tempo);
-            banheiro_homens.release();
             System.out.println(nome + numero + ": saiu do banheiro...");
+            banheiro_homens.release();
 
+            //
             lock.lock();
             try{
                 homens--;
-                if (contador_homens == 5){
-                    System.out.println("... É vez das mulheres entrarem no banheiro...");
-                    contador_homens = 0;
-                    booleana = false;
+                contador_homens--;
+                if (!booleana || homens == 0) {
+                    if (homens == 0){
+                        contador_espera = 0;
+                    }
+                    System.out.println("... É a vez das MULHERES usarem o banheiro...");
                     catraca_mulheres.release();
                 }
             }finally{
@@ -108,23 +177,25 @@ public class Main {
         private final String nome;
         private final int numero;
         private final int tempo;
+        private final int contador;
 
-        public Pessoa(Banheiro banheiro, String nome, int numero, int tempo) {
+        public Pessoa(Banheiro banheiro, String nome, int numero, int tempo, int contador) {
             this.banheiro = banheiro;
             this.nome = nome;
             this.numero = numero;
             this.tempo = tempo;
+            this.contador = contador;
         }
         public void run() {
             if (nome == "Homem"){
                 try {
-                    banheiro.Homens(nome, numero, tempo);
+                    banheiro.Homens(nome, numero, tempo, contador);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             } else {
                 try{
-                    banheiro.Mulheres(nome, numero, tempo);
+                    banheiro.Mulheres(nome, numero, tempo, contador);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -144,12 +215,12 @@ public class Main {
 
             if (num == 0) {
                 contador_mulher ++;
-                Pessoa pessoa = new Pessoa(banheiro, "Mulher", contador_mulher, num2* 1000);
+                Pessoa pessoa = new Pessoa(banheiro, "Mulher", contador_mulher, num2* 1000, i + 1);
                 Thread pessoaThread = new Thread(pessoa);
                 pessoaThread.start();
             } else{
                 contador_homem ++;
-                Pessoa pessoa = new Pessoa(banheiro, "Homem", contador_homem, num2* 1000);
+                Pessoa pessoa = new Pessoa(banheiro, "Homem", contador_homem, num2* 1000, i + 1);
                 Thread pessoaThread = new Thread(pessoa);
                 pessoaThread.start();
             }
