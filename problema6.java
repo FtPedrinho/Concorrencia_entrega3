@@ -11,8 +11,8 @@ public class Main {
         private static final Semaphore catraca = new Semaphore(1);
         private static final Semaphore banheiro = new Semaphore(3);
         private static final Lock lock = new ReentrantLock();
-        private static boolean boleana = true; // 0 = mulher; 1 = homem.
-        private static int pessoas = 0;
+        private static String genero = "nada";
+
 
 
         public void usarBanheiro(String nome, int numero, int tempo, int contador) throws InterruptedException {
@@ -21,51 +21,13 @@ public class Main {
             lock.lock();
             try {
                 if (contador == 1) {
-                    if (nome == "Homem") {
-                        boleana = true;
-                    } else {
-                        boleana = false;
-                    }
+                    genero = nome;
                 }
             }finally{
                 lock.unlock();
             }
 
-            if ((!boleana && nome == "Homem") || (boleana && nome == "Mulher")){
-                catraca.acquire();
-            }
-
-            catraca.acquire();
-            catraca.release();
-
-            lock.lock();
-            try{
-                pessoas++;
-            }finally{
-                lock.unlock();
-            }
-
-            System.out.println(nome + numero + ": entrou no banheiro...");
-            banheiro.acquire();
-            Thread.sleep(tempo);
-            banheiro.release();
-            System.out.println(nome + numero + ": saiu do banheiro...");
-
-            lock.lock();
-            try{
-                pessoas--;
-                if (pessoas == 0 && ((boleana && nome == "Homem") || (!boleana && nome == "Mulher"))){
-                    System.out.println("... Trocando a vez de usar o banheiro...");
-                    if (boleana == true){
-                        boleana = false;
-                    }else{
-                        boleana = true;
-                    }
-                    catraca.release();
-                }
-            }finally{
-                lock.unlock();
-            }
+            
         }
     }
 
