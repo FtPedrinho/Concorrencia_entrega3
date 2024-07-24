@@ -44,34 +44,34 @@ public class Main {
         // possível, subindo no ônibus e alterando variáveis.
 
         public void Parada(String nome, int numero) throws InterruptedException {
-                System.out.println(nome + numero + ": chegou à parada de ônibus.");
-                catraca.acquire();
-                catraca.release();
+            System.out.println(nome + numero + ": chegou à parada de ônibus.");
+            catraca.acquire();
+            catraca.release();
 
-                // Manipulação de variaveis.
-                lock.lock();
-                try{
-                    pessoas_esperando ++;
-                    if(pessoas_esperando > 50){
-                        System.out.println(nome + numero + " terá que esperar o próximo ônibus.");
-                    }
-                }finally{
-                    lock.unlock();
+            // Manipulação de variaveis.
+            lock.lock();
+            try{
+                pessoas_esperando ++;
+                if(pessoas_esperando > 50){
+                    System.out.println(nome + numero + " terá que esperar o próximo ônibus.");
                 }
+            }finally{
+                lock.unlock();
+            }
 
-                assentos.acquire();
+            assentos.acquire();
 
-                // Manipulação de variaveis.
-                lock.lock();
-                try {
-                    System.out.println(nome + numero + ": subiu no ônibus...");
+            // Manipulação de variaveis.
+            lock.lock();
+            try {
+                System.out.println(nome + numero + ": subiu no ônibus...");
 
-                    // Contador de quantas subiram no ônibus.
-                    pessoas_onibus++;
-                    pessoas_esperando--;
-                }finally{
-                    lock.unlock();
-                }
+                // Contador de quantas subiram no ônibus.
+                pessoas_onibus++;
+                pessoas_esperando--;
+            }finally{
+                lock.unlock();
+            }
         }
 
         //   Está função é a do motorista, uma Thread será responsável por guiá-la: o motorista.
@@ -79,10 +79,10 @@ public class Main {
         // é determinado de forma aleatoria em segundos e, quando o ônibus chega, a catraca é
         // trancada. O ônibus libera 50 assentos e fecha sem aumentar a quantidade de permissões
         // no semáforo. Uma vez que ele parte, a catraca é reaberta.
-        
+
         public void Coordenar() throws InterruptedException{
 
-            for (int i = 0; i < 100; i++){
+            for (int i = 0; i < 6; i++){
 
                 // Tempo de espera do ônibus chegar.
                 int tempo = gerador.nextInt(3);
@@ -100,7 +100,7 @@ public class Main {
                 assentos.acquire(50-pessoas_onibus);
                 pessoas_onibus = 0;
                 System.out.println("... O ônibus irá partir...");
-                
+
                 // A catraca é liberada.
                 catraca.release();
             }
@@ -110,7 +110,7 @@ public class Main {
     //   Classe dos passageiro, com suas características (nome, número e ônibus)
     // ela é reaproveitada para fazer a Thread do motorista e coordenar a chegada
     // e partida dos ônibus, levando as diferentes Threads para funções diferentes.
-    
+
     public static class Passageiro implements Runnable {
         private final Onibus onibus;
         private final String nome;
@@ -142,7 +142,7 @@ public class Main {
 
     //   A main envolve a criação da parada de ônibus, a criação do motorista
     // (levando-o a sua função) e a criação dos passageiros.
-    
+
     public static void main(String[] args) {
         Onibus onibus = new Onibus();
 
