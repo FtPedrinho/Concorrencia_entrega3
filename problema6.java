@@ -8,26 +8,36 @@ import java.util.Random;
 public class Main {
 
     public static class Banheiro{
-        private static final Semaphore catraca = new Semaphore(1);
         private static final Semaphore banheiro = new Semaphore(3);
         private static final Lock lock = new ReentrantLock();
         private static String genero = "nada";
 
-
-
-        public void usarBanheiro(String nome, int numero, int tempo, int contador) throws InterruptedException {
+        public void usarBanheiro(String nome, int numero, int tempo) throws InterruptedException {
             System.out.println(nome + numero + " chegou à fila do banheiro.");
 
             lock.lock();
             try {
-                if (contador == 1) {
+                if (genero == "nada") {
                     genero = nome;
                 }
+
+                if (nome != genero){
+                    banheiro.acquire(3);
+                    System.out.println("... trocando a vez...");
+                    genero = nome;
+                    banheiro.release(3);
+                }
+
             }finally{
                 lock.unlock();
             }
 
-            
+            banheiro.acquire();
+            System.out.println(nome + numero + ": entrou no banheiro");
+            Thread.sleep(tempo);
+            System.out.println(nome + numero + ": saiu do banheiro");
+            banheiro.release();
+
         }
     }
 
@@ -36,18 +46,16 @@ public class Main {
         private final String nome;
         private final int numero;
         private final int tempo;
-        private final int contador;
 
-        public Pessoa(Banheiro banheiro, String nome, int numero, int tempo, int contador) {
+        public Pessoa(Banheiro banheiro, String nome, int numero, int tempo) {
             this.banheiro = banheiro;
             this.nome = nome;
             this.numero = numero;
             this.tempo = tempo;
-            this.contador = contador;
         }
         public void run() {
             try {
-                banheiro.usarBanheiro(nome, numero, tempo, contador);
+                banheiro.usarBanheiro(nome, numero, tempo);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -66,17 +74,17 @@ public class Main {
 
             if (genero == 0) {
                 contador_mulher ++;
-                Pessoa pessoa = new Pessoa(banheiro, "Mulher", contador_mulher, tempo * 1000, i + 1);
+                Pessoa pessoa = new Pessoa(banheiro, "Mulher", contador_mulher, tempo * 1000);
                 Thread pessoaThread = new Thread(pessoa);
                 pessoaThread.start();
             } else{
                 contador_homem ++;
-                Pessoa pessoa = new Pessoa(banheiro, "Homem", contador_homem, tempo * 1000, i + 1);
+                Pessoa pessoa = new Pessoa(banheiro, "Homem", contador_homem, tempo * 1000);
                 Thread pessoaThread = new Thread(pessoa);
                 pessoaThread.start();
             }
             try {
-                Thread.sleep(200);
+                Thread.sleep(1500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
