@@ -1,11 +1,14 @@
-
-
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Random;
 
 public class Main {
+    
+    //    A classe do banheiro foi criada com um semáforo, um lock e uma string de identificação para determinar o
+    // genero da pessoa no banheiro. As threads que entram no banheiro com o mesmo genero da variavel podem entrar
+    // no banheiro e as threads que entram sendo do genero oposto travam a entrada e alteram a variavel ate que todos 
+    // saiam do banheiro.
 
     public static class Banheiro{
         private static final Semaphore banheiro = new Semaphore(3);
@@ -15,6 +18,7 @@ public class Main {
         public void usarBanheiro(String nome, int numero, int tempo) throws InterruptedException {
             System.out.println(nome + numero + " chegou à fila do banheiro.");
 
+            // determinação do genero e possivel travamento da fila até a troca
             lock.lock();
             try {
                 if (genero == "nada") {
@@ -32,6 +36,7 @@ public class Main {
                 lock.unlock();
             }
 
+            // entrada e saída do banheiro
             banheiro.acquire();
             System.out.println(nome + numero + ": entrou no banheiro");
             Thread.sleep(tempo);
@@ -41,6 +46,8 @@ public class Main {
         }
     }
 
+    //   A classe das pessoas vem com 4 variaveis: banheiro, nome ("homem" ou "mulher"), numero de contagem e numero
+    // para tempo do banheiro. As threads são levadas para a função do banheiro.
     public static class Pessoa implements Runnable {
         private final Banheiro banheiro;
         private final String nome;
@@ -62,6 +69,8 @@ public class Main {
         }
     }
 
+    //    Na main, utilizamos uma variável random para gerar pessoas de genero e um tempo de utilização
+    // do banheiro aleatórios. Existem contadores individuais para homens e mulheres que serão levados ao código.
     public static void main(String[] args) {
         Banheiro banheiro = new Banheiro();
         Random random = new Random();
